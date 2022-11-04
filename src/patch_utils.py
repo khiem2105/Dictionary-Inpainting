@@ -77,6 +77,32 @@ def vec2patch(X: np.ndarray):
 
     return X.reshape(h, h, 3)
 
+def pixel_inside(im: np.ndarray, i: int, j: int):
+    """
+    Test if a pixel is out of an image bound or not
+    
+    :param im: numpy array of the image
+    :param x, y: pixel coordiate
+    """
+
+    h, w = im.shape[:2]
+
+    return 0 <= i < h and 0 <= j < w
+
+def iter_patch(im: np.ndarray, i: int, j: int, h: int=H):
+    """
+    Iterate through all the missing pixel in a patch centered at (i, j)
+
+    :param im: numpy array of the image
+    :param i, j: patch coordinate
+    """
+
+    for x in range(i - h, i + h + 1):
+        for y in range(j - h, j - h + 1):
+            if pixel_inside(im, x, y):
+                if all(im[x, y] == DEAD):
+                    yield x, y
+
 def make_noise(patch: np.ndarray, rate: float=0.2):
     """
     Randomly set some pixel to dead value in a patch or an image
@@ -145,4 +171,4 @@ def build_dict(im: np.ndarray, step: int=H):
                 if np.sum(patch[:, :, 0] <= DEAD) == 0:
                     patch_dict.append(patch2vec(patch))
 
-    return np.array(patch_dict)
+    return np.vstack(patch_dict).T
