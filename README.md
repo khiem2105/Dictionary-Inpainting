@@ -4,4 +4,6 @@ Image inpainting using dictionary learning and sparse representation, inspired f
 # Some results
 <center>
   <img src="https://github.com/khiem2105/Dictionary-Inpainting/blob/main/image/results/outdoor_origin.jpg" alt="outdoor_origin">
+  <img src="https://github.com/khiem2105/Dictionary-Inpainting/blob/main/image/results/outdoor_noisy.jpg" alt="outdoor_50%noise">
+  <img src="https://github.com/khiem2105/Dictionary-Inpainting/blob/main/image/results/outdoor_inpainted.jpg" alt="outdoor inpainted">
  </center>
