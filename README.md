@@ -9,4 +9,7 @@ Image inpainting using dictionary learning and sparse representation, inspired f
   <img src="https://github.com/khiem2105/Dictionary-Inpainting/blob/main/image/castle_results2.png" alt="castle2">
  </center>
 
-With an appropriate patch dimension, this method can recover an image that are 50% destroyed. 
+With an appropriate patch dimension, this method can recover an image that is 50% destroyed. However, it still has many disadvantages: computationally expensive, sensible to small change in patch size, etc. A better heuristic to reconstruct the missing patch still need to be considered.
+
+# Running
+The config files is organized with <a href="https://hydra.cc/">hydra</a>. The <a href="https://github.com/khiem2105/Dictionary-Inpainting/blob/main/config/lasso/default.yaml"><lasso/default.yaml</a> file contains the default parameters for the LASSO regularizer. The <a href="">noise</a> folder contains 2 files for 2 method of destroying the image: add random noise and remove a whole rectangle patch, together with the corresponding hyperparameters (the noise ratio, the coordinate and the dimension of the patch to remove).
