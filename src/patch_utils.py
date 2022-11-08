@@ -34,7 +34,7 @@ def read_img(img: str):
     
     return rgb_to_hsv(im) - 0.5
 
-def show(im: np.ndarray, image_name: str=None, fig: bool=None):
+def show(im: np.ndarray, image_name: str=None, fig=None, title: str=None):
     """
     Show an image
 
@@ -51,6 +51,8 @@ def show(im: np.ndarray, image_name: str=None, fig: bool=None):
     fig.set_data(hsv_to_rgb(im + 0.5))
     plt.axis("off")
     plt.draw()
+    if title:
+        plt.title(title)
     
     if not image_name:
         plt.show()
