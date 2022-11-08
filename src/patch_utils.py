@@ -1,12 +1,21 @@
+import pyrootutils
+root = pyrootutils.setup_root(
+    search_from=__file__,
+    indicator=["main.py"],
+    pythonpath=True,
+    dotenv=True,
+)
+path = pyrootutils.find_root(search_from=__file__, indicator="main.py")
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import rgb_to_hsv,hsv_to_rgb
 
-# patch dimension
-H = 10
-
 # Dead pixel value
 DEAD = -100
+
+# Out of bound
+OUT_OF_BOUNDS = np.ones((3,)) * -1000
 
 def read_img(img: str):
     """ 
@@ -42,10 +51,10 @@ def show(im: np.ndarray, fig: bool=None):
     fig.set_data(hsv_to_rgb(im + 0.5))
     plt.draw()
     
-    plt.pause(0.001)
+    plt.show()
     return fig
 
-def get_patch(i: int, j: int, im: np.ndarray, h: int=H):
+def get_patch(i: int, j: int, im: np.ndarray, h: int):
     """
     Return a patch with center at (i, j)
 
@@ -54,8 +63,20 @@ def get_patch(i: int, j: int, im: np.ndarray, h: int=H):
     :param im: numpy array represent the image
     :param h: patch dimension
     """
+    if inside(i, j, im, h):
+        return im[(i - h):(i + h + 1), (j - h):(j + h + 1)]
+    else:
+        patch = []
+        for x in range(i - h, i + h + 1):
+            new_line = []
+            for y in range(j - h, j + h + 1):
+                if pixel_inside(im, x, y):
+                    new_line.append(im[x, y])
+                else:
+                    new_line.append(OUT_OF_BOUNDS)
+            patch.append(np.array(new_line))
 
-    return im[(i - h):(i + h + 1), (j - h):(j + h + 1)]
+        return np.array(patch)
 
 def patch2vec(patch: np.ndarray):
     """
@@ -89,7 +110,7 @@ def pixel_inside(im: np.ndarray, i: int, j: int):
 
     return 0 <= i < h and 0 <= j < w
 
-def iter_patch(im: np.ndarray, i: int, j: int, h: int=H):
+def iter_patch(im: np.ndarray, i: int, j: int, h: int):
     """
     Iterate through all the missing pixel in a patch centered at (i, j)
 
@@ -98,7 +119,7 @@ def iter_patch(im: np.ndarray, i: int, j: int, h: int=H):
     """
 
     for x in range(i - h, i + h + 1):
-        for y in range(j - h, j - h + 1):
+        for y in range(j - h, j + h + 1):
             if pixel_inside(im, x, y):
                 if all(im[x, y] == DEAD):
                     yield x, y
@@ -142,7 +163,7 @@ def remove(im: np.ndarray, i: int, j: int, height: int, width: int):
 
     return im
 
-def inside(i: int, j: int, im: np.ndarray, h: int=H):
+def inside(i: int, j: int, im: np.ndarray, h: int):
     """
     Test if a patch is inside the image or not
 
@@ -153,7 +174,7 @@ def inside(i: int, j: int, im: np.ndarray, h: int=H):
 
     return i - h >= 0 and j - h >= 0 and i + h + 1 <= im.shape[0] and j + h + 1 <= im.shape[1]
 
-def build_dict(im: np.ndarray, step: int=H):
+def build_dict(im: np.ndarray, step: int, patch_size: int, max_missing_value: int):
     """
     Build the dictionary included all the patch without dead pixel from the img
 
@@ -165,10 +186,10 @@ def build_dict(im: np.ndarray, step: int=H):
 
     for i in range(0, im.shape[0], step):
         for j in range(0, im.shape[1], step):
-            if inside(i, j, im):
-                patch = get_patch(i, j, im)
+            if inside(i, j, im, patch_size):
+                patch = get_patch(i, j, im, patch_size)
 
-                if np.sum(patch[:, :, 0] <= DEAD) == 0:
-                    patch_dict.append(patch2vec(patch))
+                if np.sum(patch[:, :, 0] == DEAD) <= max_missing_value:
+                    patch_dict.append(patch)
 
-    return np.vstack(patch_dict).T
+    return np.array(patch_dict)

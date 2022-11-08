@@ -1,5 +1,14 @@
+import pyrootutils
+root = pyrootutils.setup_root(
+    search_from=__file__,
+    indicator=["main.py"],
+    pythonpath=True,
+    dotenv=True,
+)
+path = pyrootutils.find_root(search_from=__file__, indicator="main.py")
+
 from sklearn.linear_model import Lasso
-from patch_utils import *
+from src.patch_utils import *
 
 from tqdm import tqdm
 
@@ -8,6 +17,7 @@ class Inpainting(object):
         self,
         patch_size: int,
         step: int,
+        max_missing_value: int,
         lambda_: float,
         max_iterations: int,
         tolerance: float
@@ -17,12 +27,14 @@ class Inpainting(object):
         :param lambda, max_iteration, tolerance: for sklearn LASSO
         :param patch_size: patch dimension
         :param step: step to move the patch 
+        :param max_missing_value: max number of missing pixel in one dictionary patch
         """
 
         super(Inpainting, self).__init__()
 
         self.patch_size = patch_size
         self.step = step if step is not None else patch_size
+        self.max_missing_value = max_missing_value
 
         self.dead_pixels = np.ones(3,) * DEAD
 
@@ -31,7 +43,6 @@ class Inpainting(object):
             "copy_X": True,
             "fit_intercept": True,
             "max_iter": max_iterations,
-            "normalize": False,
             "positive": False,
             "precompute": False,
             "random_state": None,
@@ -40,7 +51,9 @@ class Inpainting(object):
             "warm_start": False
         }
 
-        self.optimizer = Lasso(**optimizer_kwargs)
+        self.hue_optimizer = Lasso(**optimizer_kwargs)
+        self.saturation_optimizer = Lasso(**optimizer_kwargs)
+        self.value_optimizer = Lasso(**optimizer_kwargs)
 
     def _get_next_dead_pixel(
         self,
@@ -63,22 +76,29 @@ class Inpainting(object):
         Main method for inpainting
         """
 
-        patch_dict = build_dict(im)
+        patch_dict = build_dict(im, step=self.step, patch_size=self.patch_size, max_missing_value=self.max_missing_value)
 
-        nb_dead_pixels = np.sum(im == self) // 3
+        nb_dead_pixels = np.sum(im == self.dead_pixels) // 3
 
         progress_bar = tqdm(total=nb_dead_pixels)
         while self.dead_pixels in im:
             i, j = self._get_next_dead_pixel(im)
+            print(f"Dead pixel: {i, j}")
             next_patch = get_patch(i, j, im, h=self.patch_size)
+            print(f"Next patch shape: {next_patch.shape}")
             
             self.fit(patch_dict, next_patch)
             for x, y in iter_patch(im, i, j, self.patch_size):
+                # print(x, y)
                 patch_coordinate_x = x - i + self.patch_size
                 patch_coordinate_y = y - j + self.patch_size
                 missing_value = self.predict(im, patch_dict, patch_coordinate_x, patch_coordinate_y)
                 im[x, y] = missing_value
+            
+                progress_bar.update(1) 
         progress_bar.close()
+
+        return im
     
     def fit(
         self,
@@ -94,17 +114,19 @@ class Inpainting(object):
         :param patch_dict: the dictionary
         :param next_patch: the patch with missing value
         """
+        mask = (next_patch > DEAD)
 
-        # fit
-        next_patch_vec = patch2vec(next_patch)
+        data_y_hue = next_patch[mask[:, :, 0], 0]
+        data_y_saturation = next_patch[mask[:, :, 1], 1]
+        data_y_value = next_patch[mask[:, :, 2], 2]
 
-        mask = (next_patch_vec > DEAD)
-        mask_for_dict = mask[:, None].repeat(patch_dict.shape[-1], axis=-1)
-
-        next_patch_vec_masked = next_patch_vec[mask]
-        dict_masked = patch_dict[mask_for_dict]
-
-        self.optimizer.fit(dict_masked, next_patch_vec_masked)
+        data_x_hue = patch_dict[:, mask[:, :, 0], 0].T
+        data_x_saturation = patch_dict[:, mask[:, :, 1], 1].T
+        data_x_value = patch_dict[:, mask[:, :, 2], 2].T
+        
+        self.hue_optimizer.fit(data_x_hue, data_y_hue)
+        self.saturation_optimizer.fit(data_x_saturation, data_y_saturation)
+        self.value_optimizer.fit(data_x_value, data_y_value)
 
     def predict(
         self,
@@ -121,11 +143,9 @@ class Inpainting(object):
         :param patch_dict: the dictionary
         :param patch_coordinate_x/y: coordinate of the missing pixel in the current patch
         """
+        hue = self.hue_optimizer.predict(patch_dict[:, patch_coordinate_x, patch_coordinate_y, 0].reshape(1, -1))
+        saturation = self.saturation_optimizer.predict(patch_dict[:, patch_coordinate_x, patch_coordinate_y, 1].reshape(1, -1))
+        value = self.value_optimizer.predict(patch_dict[:, patch_coordinate_x, patch_coordinate_y, 2].reshape(1, -1))
 
-        coordinate = [patch_coordinate_x * self.patch_size + patch_coordinate_y + n * self.patch_size ** 2 for n in range(3)]
-        coordinates = np.array(coordinate)[:, None].repeat(patch_dict.shape[-1], axis=-1)
-
-        patch_dict_missing = np.take_along_axis(patch_dict, coordinates, axis=0)
-        missing_value = self.optimizer.predict(patch_dict_missing)
-
+        missing_value = np.hstack([hue, saturation, value])
         return missing_value
