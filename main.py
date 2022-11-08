@@ -20,6 +20,7 @@ def main(cfg: DictConfig):
     image_name = cfg.image_name.split(".")[0]
 
     img = read_img(path / f"image/{cfg.image_name}")
+    show(img, path / f"image/{image_name}_origin.jpg")
     
     noisy_img_fn = instantiate(cfg.noise)
     noisy_img = noisy_img_fn(img)
