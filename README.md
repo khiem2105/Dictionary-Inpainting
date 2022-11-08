@@ -13,3 +13,11 @@ With an appropriate patch dimension, this method can recover an image that is 50
 
 # Running
 The config files is organized with <a href="https://hydra.cc/">hydra</a>. The <a href="https://github.com/khiem2105/Dictionary-Inpainting/blob/main/config/lasso/default.yaml">lasso/default.yaml</a> file contains the default parameters for the LASSO regularizer. The <a href="">noise</a> folder contains 2 files for 2 method of destroying the image: add random noise and remove a whole rectangle patch, together with the corresponding hyperparameters (the noise ratio, the coordinate and the dimension of the patch to remove).
+
+For example, to run an experiment to reconstruct an image in which a 190x80-pixel patch centered at (497, 288):
+
+``` python main.py image_name=[path to your image]```
+
+To run with a different set of parameters, hydra allows you to override the parameter right on the command line. For example:
+
+```python main.py image_name=[...] lasso.lambda_=... lasso.max_iterations=... noise.rate=...```
