@@ -34,7 +34,7 @@ def read_img(img: str):
     
     return rgb_to_hsv(im) - 0.5
 
-def show(im: np.ndarray, fig: bool=None):
+def show(im: np.ndarray, image_name: str=None, fig: bool=None):
     """
     Show an image
 
@@ -49,9 +49,14 @@ def show(im: np.ndarray, fig: bool=None):
         plt.figure()
         fig = plt.imshow(hsv_to_rgb(im + 0.5))
     fig.set_data(hsv_to_rgb(im + 0.5))
+    plt.axis("off")
     plt.draw()
     
-    plt.show()
+    if not image_name:
+        plt.show()
+    else:
+        plt.savefig(image_name)
+    
     return fig
 
 def get_patch(i: int, j: int, im: np.ndarray, h: int):

@@ -1,0 +1,7 @@
+defaults:
+  - hydra: default.yaml
+  - lasso: default.yaml
+  - noise: remove.yaml
+  - _self_
+
+image_name: outdoor.jpg

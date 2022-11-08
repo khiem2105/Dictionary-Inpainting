@@ -1,0 +1,5 @@
+output_subdir: config
+job:
+  chdir: True
+run:
+  dir: ./outputs/${image_name}/${now:%Y-%m-%d}/${now:%H-%M}

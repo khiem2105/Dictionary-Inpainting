@@ -1,0 +1,6 @@
+_target_: src.patch_utils.remove
+_partial_: True
+i: 288 
+j: 497
+height: 190
+width: 80

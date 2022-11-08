@@ -1,18 +1,35 @@
+import pyrootutils
+root = pyrootutils.setup_root(
+    search_from=__file__,
+    indicator=["main.py"],
+    pythonpath=True,
+    dotenv=True,
+)
+path = pyrootutils.find_root(search_from=__file__, indicator="main.py")
+
 from src.inpainting import *
 from src.patch_utils import *
 
-img = read_img("./image/outdoor.jpg")
-noisy_img = remove(img, 288, 497, 190, 80)
-show(noisy_img)
+from omegaconf import DictConfig, OmegaConf
+import hydra
+from hydra.utils import instantiate
 
-c = Inpainting(
-    patch_size=50,
-    step=None,
-    max_missing_value=0,
-    lambda_=0.0001,
-    max_iterations=100000,
-    tolerance=1e-4
-)
 
-new_im = c.inpaint(noisy_img)
-show(new_im)
+@hydra.main(version_base="1.2.0", config_path=path / "config", config_name="inpainting")
+def main(cfg: DictConfig):
+    image_name = cfg.image_name.split(".")[0]
+
+    img = read_img(path / f"image/{cfg.image_name}")
+    
+    noisy_img_fn = instantiate(cfg.noise)
+    noisy_img = noisy_img_fn(img)
+    show(noisy_img, path / f"image/{image_name}_noisy.jpg")
+
+    c = instantiate(cfg.lasso)
+
+    new_im = c.inpaint(noisy_img)
+
+    fig = show(new_im, path / f"image/{image_name}_inpainted.jpg")
+
+if __name__ == "__main__":
+    main()
