@@ -8,3 +8,5 @@ Image inpainting using dictionary learning and sparse representation, inspired f
   <img src="https://github.com/khiem2105/Dictionary-Inpainting/blob/main/image/castle_results1.png" alt="castle1">
   <img src="https://github.com/khiem2105/Dictionary-Inpainting/blob/main/image/castle_results2.png" alt="castle2">
  </center>
+
+With an appropriate patch dimension, this method can recover an image that are 50% destroyed. 
